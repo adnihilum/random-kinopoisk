@@ -34,6 +34,7 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - scotty
     - random-kinopoisk
 
 tests:
@@ -45,4 +46,5 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - scotty
     - random-kinopoisk
