@@ -24,6 +24,12 @@ dependencies:
 
 library:
   source-dirs: src
+  dependencies:
+  - scotty
+  - clay
+  - text
+  - blaze-html
+  - blaze-markup
 
 default-extensions:
 - OverloadedStrings
@@ -37,11 +43,6 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - scotty
-    - clay
-    - text
-    - blaze-html
-    - blaze-markup
     - random-kinopoisk
 
 tests:
