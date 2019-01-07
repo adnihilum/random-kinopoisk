@@ -9,6 +9,5 @@ import Web.Scotty
 
 searchAction :: ActionM ()
 searchAction = do
-  params <- params
-  let query = toStrict $ fromMaybe "" $ lookup "q" params
+  query <- (toStrict <$>) . lookup "q" <$> params
   Views.Search.Results.view query
