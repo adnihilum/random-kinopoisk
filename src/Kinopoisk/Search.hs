@@ -2,18 +2,22 @@ module Kinopoisk.Search where
 
 import Codec.Text.IConv (convert)
 import qualified Data.ByteString.Lazy as LBS
-import Data.Text (Text)
-import Data.Text.Encoding (decodeUtf8)
+import Data.Text.Lazy (Text, unpack)
+import Data.Text.Lazy.Encoding (decodeUtf8)
+import Kinopoisk.SearchUrl
 import Network.HTTP.Simple
-import qualified Network.URI.Encode as UE
 import Text.HTML.TagSoup
 
-getFirstMovie :: IO (Maybe Text)
-getFirstMovie = do
-  let url =
-        "https://www.kinopoisk.ru/s/type/film/list/1/order/rating/" ++ UE.encode "m_act[genre][0]" ++ "/10/perpage/10/" :: String
-  request <- parseRequest url
+getFirstMovie :: ContentType -> Integer -> Integer -> IO (Maybe Text)
+getFirstMovie type' fromYear toYear = do
+  let url = buildUrl [ParamFromYear fromYear, ParamToYear toYear, ParamContentType type', ParamPerPage 10, ParamPage 3]
+  putStrLn $ "url = " ++ unpack url
+  request <- parseRequest $ unpack url
   response <- httpLBS request
+  let statusCode = getResponseStatusCode response
+  putStrLn $ "status code: " ++ show statusCode
+  let headers = getResponseHeaders response
+  putStrLn $ "headers: " ++ show headers
   let body = getResponseBody response
   let allTags = parseTags body
   let titleTags =
@@ -23,4 +27,4 @@ getFirstMovie = do
         allTags
   putStrLn $ "titleTags= " ++ show titleTags
   let movieTitles = innerText titleTags
-  return $ decodeUtf8 . LBS.toStrict . convert "cp1251" "utf8" <$> Just movieTitles
+  return $ decodeUtf8 . convert "cp1251" "utf8" <$> Just movieTitles

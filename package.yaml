@@ -36,6 +36,7 @@ library:
   - uri-encode
   - bytestring
   - iconv
+  - containers
 
 default-extensions:
 - OverloadedStrings

@@ -5,14 +5,14 @@ import Prelude hiding (div, head, id)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text, append)
 import Kinopoisk.SearchUrl
-import Text.Blaze.Html5 (Html, (!), a, button, div, form, h1, input, label, option, p, select, text, textValue)
+import Text.Blaze.Html5 (Html, (!), a, button, div, form, h1, input, label, option, p, select, stringValue, text, textValue)
 import Text.Blaze.Html5.Attributes (action, class_, for, href, id, method, multiple, name, type_, value)
 import qualified Views.Layout
 import Views.Utils (blaze)
 import Web.Scotty (ActionM)
 
-view :: Maybe Text -> Maybe Text -> ActionM ()
-view request movieTitle =
+view :: Maybe Text -> ActionM ()
+view movieTitle =
   blaze $
   Views.Layout.layout "Search" $ do
     div ! class_ "container" $ do
@@ -21,7 +21,7 @@ view request movieTitle =
         p $ text $ "First found movie: " `append` fromMaybe "Not Found" movieTitle
         searchForm
 
--- from_year to_year genre
+-- from_year to_year type
 searchForm :: Html
 searchForm = do
   form ! action "/" ! method "get" $ do
@@ -29,7 +29,7 @@ searchForm = do
       simpleInput "from_year" "from_year" "From year:"
       simpleInput "to_year" "to_year" "To year:"
       multiSelectList "type" "type" "Content type:" $
-        map (\(ContentType code title) -> (textValue code, text title)) contentTypeList
+        map (\(type') -> (stringValue $ show type', getContentTypeTitle type')) contentTypeList
       submitButton "Search"
   where
     simpleInput inputName inputId inputLabel = do
