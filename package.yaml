@@ -30,6 +30,12 @@ library:
   - text
   - blaze-html
   - blaze-markup
+  - tagsoup
+  - http-client
+  - http-conduit
+  - uri-encode
+  - bytestring
+  - iconv
 
 default-extensions:
 - OverloadedStrings

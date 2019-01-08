@@ -10,8 +10,8 @@ import qualified Views.Layout
 import Views.Utils (blaze)
 import Web.Scotty (ActionM)
 
-view :: Maybe Text -> ActionM ()
-view request =
+view :: Maybe Text -> Maybe Text -> ActionM ()
+view request movieTitle =
   blaze $
   Views.Layout.layout "Search" $ do
     div ! class_ "container" $ do
@@ -24,3 +24,4 @@ view request =
         p $ do
           a ! class_ "btn btn-lg btn-primary" ! id "fb" ! href "#navbar" $ "Facebook"
           a ! class_ "btn btn-lg btn-danger" ! id "gmail" ! href "#navbar" $ "Gmail"
+        p $ text $ "First found movie: " `append` fromMaybe "Not Found" movieTitle
