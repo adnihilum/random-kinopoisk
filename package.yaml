@@ -37,6 +37,7 @@ library:
   - bytestring
   - iconv
   - containers
+  - parsec
 
 default-extensions:
 - OverloadedStrings
