@@ -40,13 +40,15 @@ instance Read ContentType where
       types = fromList [(show type', type') | type' <- [minBound :: ContentType ..]]
 
 -- "https://www.kinopoisk.ru/s/type/film/list/1/m_act[from_year]/2004/m_act[to_year]/2018/m_act[genre][0]/3/m_act[genre][1]/13/m_act[genre][2]/19/m_act[type]/serial/"
-getContentTypeTitle ContentTypeFilm = "фильм"
-getContentTypeTitle ContentTypeSerial = "сериал"
-getContentTypeTitle ContentTypeWallpaper = "обои"
-getContentTypeTitle ContentTypeSnapshot = "фотографии"
-getContentTypeTitle ContentTypePoster = "постеры"
-getContentTypeTitle ContentTypeTrailer = "трейлеры"
-getContentTypeTitle ContentTypeProduct = "DVD"
+getContentTypeTitle type' =
+  case type' of
+    ContentTypeFilm -> "фильм"
+    ContentTypeSerial -> "сериал"
+    ContentTypeWallpaper -> "обои"
+    ContentTypeSnapshot -> "фотографии"
+    ContentTypePoster -> "постеры"
+    ContentTypeTrailer -> "трейлеры"
+    ContentTypeProduct -> "DVD"
 
 contentTypeList = [minBound :: ContentType ..]
 
