@@ -56,8 +56,7 @@ parseBody = parse parser "html tokens"
           result <- decodeUtf8 . convert "cp1251" "utf8" . innerText <$> elementTags
           trace ("found element=" ++ show result) $ return ()
           return result
-        elementTags = do
-          afterAnyTokens $ token'' "<div class=element>"
+        elementTags = try $ do
           afterAnyTokens $ token'' "<div class=info>"
           afterAnyTokens $ token'' "<p class=name>"
           afterAnyTokens $ token'' "<a class=js-serp-metrika>"
