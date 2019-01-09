@@ -22,17 +22,20 @@ data SearchParams = SearchParams
 
 perPage = 10
 
-getRandomElement :: SearchParams -> IO (Integer, Text)
+getRandomElement :: SearchParams -> IO (Integer, Maybe Text)
 getRandomElement params = do
   (total, _) <- getElementsOnPage params
-  putStrLn $ "total = " ++ show total
-  let totalPages = (total `div` perPage) + 1
-  putStrLn $ "totalPages = " ++ show totalPages
-  randomPage <- randomRIO (1, totalPages)
-  putStrLn $ "randomPage = " ++ show randomPage
-  (_, elements) <- getElementsOnPage $ params {spPage = randomPage}
-  randomElement <- (elements !!) <$> randomRIO (0, length elements - 1)
-  return (total, randomElement)
+  if total == 0
+    then return (total, Nothing)
+    else do
+      putStrLn $ "total = " ++ show total
+      let totalPages = (total `div` perPage) + 1
+      putStrLn $ "totalPages = " ++ show totalPages
+      randomPage <- randomRIO (1, totalPages)
+      putStrLn $ "randomPage = " ++ show randomPage
+      (_, elements) <- getElementsOnPage $ params {spPage = randomPage}
+      randomElement <- (elements !!) <$> randomRIO (0, length elements - 1)
+      return (total, Just randomElement)
 
 getElementsOnPage :: SearchParams -> IO (Integer, [Text])
 getElementsOnPage params = do

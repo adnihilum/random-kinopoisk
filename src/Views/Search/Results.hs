@@ -31,7 +31,7 @@ import Web.Scotty (ActionM)
 
 type FormValues = (ContentType, Integer, Integer)
 
-view :: FormValues -> Integer -> [Text] -> ActionM ()
+view :: FormValues -> Integer -> Maybe Text -> ActionM ()
 view formValues foundTotalNum foundElements =
   blaze $
   Views.Layout.layout "Search" $ do
@@ -39,7 +39,7 @@ view formValues foundTotalNum foundElements =
       div ! class_ "jumbotron" $ do
         h1 "Случайная выборка"
         p $ string $ "total found " ++ show foundTotalNum ++ " elements"
-        p $ text $ "found Elements: " `append` (mconcat $ intersperse ", " foundElements)
+        p $ text $ "found Elements: " `append` (fromMaybe "" foundElements)
         searchForm formValues
 
 -- from_year to_year type
