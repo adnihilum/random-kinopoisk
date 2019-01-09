@@ -33,16 +33,16 @@ getFirstMovie type' fromYear toYear = do
   putStrLn $ "foundElements = " ++ show foundElements
   return (resultNum, foundElements)
 
-type Tag' = Tag LBS.ByteString
+type Token = Tag LBS.ByteString
 
-parseBody :: [Tag'] -> Either ParseError (Integer, [Text])
-parseBody tags = parse parser "html tokens" $ Token <$> tags
+parseBody :: [Token] -> Either ParseError (Integer, [Text])
+parseBody = parse parser "html tokens"
   where
     parser :: Parsec [Token] () (Integer, [Text])
     parser = (,) <$> foundNum <*> many element
       where
         foundNum = do
-          pText <- decodeUtf8 . convert "cp1251" "utf8" . innerText . (unToken <$>) <$> foundNumText
+          pText <- decodeUtf8 . convert "cp1251" "utf8" . innerText <$> foundNumText
           trace ("pText = " ++ unpack pText) $ return ()
           trace ("words pText = " ++ show (words . unpack $ pText)) $ return ()
           let text = (!! 3) . words . unpack $ pText
@@ -53,7 +53,7 @@ parseBody tags = parse parser "html tokens" $ Token <$> tags
           afterAnyTokens $ token'' "<span class=search_results_topText>"
           afterAnyTokens $ token'' "</span>"
         element = do
-          result <- decodeUtf8 . convert "cp1251" "utf8" . innerText . (unToken <$>) <$> elementTags
+          result <- decodeUtf8 . convert "cp1251" "utf8" . innerText <$> elementTags
           trace ("found element=" ++ show result) $ return ()
           return result
         elementTags = do
@@ -65,10 +65,10 @@ parseBody tags = parse parser "html tokens" $ Token <$> tags
         afterAnyTokens p = manyTill anyToken (try p)
 
 token'' :: String -> Parsec [Token] () Token
-token'' = token' . Token . toTagRep
+token'' = token' . toTagRep
 
 token' :: Token -> Parsec [Token] () Token
-token' t = satisfy (== t) <?> show t --TODO:  replace Token with Tag' and (== t) with (~== t)
+token' t = satisfy (~== t) <?> show t
 
 satisfy :: (Token -> Bool) -> Parsec [Token] () Token
 satisfy pred =
@@ -81,10 +81,3 @@ satisfy pred =
          else Nothing)
   where
     nextPos pos token _tokens = setSourceColumn pos $ sourceColumn pos + 1
-
-data Token = Token --TODO:  delete this
-  { unToken :: Tag LBS.ByteString
-  } deriving (Show)
-
-instance Eq Token where
-  a == b = unToken a ~== unToken b -- this operation is not communicative
