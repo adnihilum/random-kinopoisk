@@ -19,4 +19,4 @@ searchAction = do
   when (fromYear > toYear) $ error "fromYear should be less or equal than toYear"
   when (toYear - fromYear > 10) $ error "time span should be less than 10 years"
   (foundTotalNum, foundElement) <- liftAndCatchIO $ getRandomElement (SearchParams contentType fromYear toYear 1)
-  Views.Search.Results.view foundTotalNum $ toStrict <$> [foundElement]
+  Views.Search.Results.view (contentType, fromYear, toYear) foundTotalNum $ toStrict <$> [foundElement]

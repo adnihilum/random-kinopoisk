@@ -2,6 +2,7 @@ module Views.Search.Results where
 
 import Prelude hiding (div, head, id)
 
+import Data.List
 import Data.Maybe (fromMaybe)
 import Data.Text (Text, append)
 import Kinopoisk.SearchUrl
@@ -23,14 +24,15 @@ import Text.Blaze.Html5
   , text
   , textValue
   )
-import Text.Blaze.Html5.Attributes (action, class_, for, href, id, method, multiple, name, type_, value)
+import Text.Blaze.Html5.Attributes (action, class_, for, href, id, method, multiple, name, selected, type_, value)
 import qualified Views.Layout
 import Views.Utils (blaze)
 import Web.Scotty (ActionM)
-import Data.List
 
-view :: Integer -> [Text] -> ActionM ()
-view foundTotalNum foundElements =
+type FormValues = (ContentType, Integer, Integer)
+
+view :: FormValues -> Integer -> [Text] -> ActionM ()
+view formValues foundTotalNum foundElements =
   blaze $
   Views.Layout.layout "Search" $ do
     div ! class_ "container" $ do
@@ -38,24 +40,32 @@ view foundTotalNum foundElements =
         h1 "Случайная выборка"
         p $ string $ "total found " ++ show foundTotalNum ++ " elements"
         p $ text $ "found Elements: " `append` (mconcat $ intersperse ", " foundElements)
-        searchForm
+        searchForm formValues
 
 -- from_year to_year type
-searchForm :: Html
-searchForm = do
+searchForm :: FormValues -> Html
+searchForm (contentType, fromYear, toYear) = do
   form ! action "/" ! method "get" $ do
     div ! class_ "form-group" $ do
-      simpleInput "from_year" "from_year" "From year:"
-      simpleInput "to_year" "to_year" "To year:"
-      multiSelectList "type" "type" "Content type:" $
-        map (\type' -> (stringValue $ show type', getContentTypeTitle type')) contentTypeList
+      simpleInput "from_year" "from_year" "From year:" $ show fromYear
+      simpleInput "to_year" "to_year" "To year:" $ show toYear
+      multiSelectList "type" "type" "Content type:" (show contentType) $
+        map (\type' -> (show type', getContentTypeTitle type')) contentTypeList
       submitButton "Search"
   where
-    simpleInput inputName inputId inputLabel = do
+    simpleInput inputName inputId inputLabel inputValue = do
       label ! for inputId $ inputLabel
-      input ! name inputName ! type_ "text" ! class_ "form-control" ! id inputId
-    multiSelectList inputName inputId inputLabel values = do
+      input ! name inputName ! type_ "text" ! class_ "form-control" ! id inputId ! value (stringValue inputValue)
+    multiSelectList inputName inputId inputLabel selectedValue values = do
       label ! for inputId $ inputLabel
       select ! name inputName ! class_ "form-control" ! id inputId $
-        mapM_ (\(optId, optLabel) -> option ! value optId $ optLabel) values
+        mapM_
+          (\(optId, optLabel) ->
+             let option' = option ! (value $ stringValue optId)
+                 option'' =
+                   if (optId == selectedValue)
+                     then option' ! selected ""
+                     else option'
+              in option'' optLabel)
+          values
     submitButton buttonLabel = input ! type_ "submit" ! class_ "btn btn-default" ! value buttonLabel
