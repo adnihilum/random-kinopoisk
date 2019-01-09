@@ -2,18 +2,48 @@ module Kinopoisk.Search where
 
 import Codec.Text.IConv (convert)
 import qualified Data.ByteString.Lazy as LBS
+import Data.Function
 import Data.Text.Lazy (Text, unpack)
 import Data.Text.Lazy.Encoding (decodeUtf8)
 import Debug.Trace (trace)
 import Kinopoisk.SearchUrl
 import Network.HTTP.Simple
+import System.Random
 import Text.HTML.TagSoup
 import Text.Parsec hiding (satisfy)
 import Text.Parsec.Pos
 
-getFirstMovie :: ContentType -> Integer -> Integer -> IO (Integer, [Text])
-getFirstMovie type' fromYear toYear = do
-  let url = buildUrl [ParamFromYear fromYear, ParamToYear toYear, ParamContentType type', ParamPerPage 10, ParamPage 3]
+data SearchParams = SearchParams
+  { spContentType :: ContentType
+  , spFromYear :: Integer
+  , spToYear :: Integer
+  , spPage :: Integer
+  }
+
+perPage = 10
+
+getRandomElement :: SearchParams -> IO (Integer, Text)
+getRandomElement params = do
+  (total, _) <- getElementsOnPage params
+  putStrLn $ "total = " ++ show total
+  let totalPages = (total `div` perPage) + 1
+  putStrLn $ "totalPages = " ++ show totalPages
+  randomPage <- randomRIO (1, totalPages)
+  putStrLn $ "randomPage = " ++ show randomPage
+  (_, elements) <- getElementsOnPage $ params {spPage = randomPage}
+  randomElement <- (elements !!) <$> randomRIO (0, length elements - 1)
+  return (total, randomElement)
+
+getElementsOnPage :: SearchParams -> IO (Integer, [Text])
+getElementsOnPage params = do
+  let url =
+        buildUrl
+          [ ParamFromYear $ params & spFromYear
+          , ParamToYear $ params & spToYear
+          , ParamContentType $ params & spContentType
+          , ParamPerPage perPage
+          , ParamPage $ params & spPage
+          ]
   putStrLn $ "url = " ++ unpack url
   request <- parseRequest $ unpack url
   response <- httpLBS request
@@ -56,11 +86,12 @@ parseBody = parse parser "html tokens"
           result <- decodeUtf8 . convert "cp1251" "utf8" . innerText <$> elementTags
           trace ("found element=" ++ show result) $ return ()
           return result
-        elementTags = try $ do
-          afterAnyTokens $ token'' "<div class=info>"
-          afterAnyTokens $ token'' "<p class=name>"
-          afterAnyTokens $ token'' "<a class=js-serp-metrika>"
-          afterAnyTokens $ token'' "</a>"
+        elementTags =
+          try $ do
+            afterAnyTokens $ token'' "<div class=info>"
+            afterAnyTokens $ token'' "<p class=name>"
+            afterAnyTokens $ token'' "<a class=js-serp-metrika>"
+            afterAnyTokens $ token'' "</a>"
         afterAnyTokens p = manyTill anyToken (try p)
 
 token'' :: String -> Parsec [Token] () Token
