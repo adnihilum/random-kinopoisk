@@ -3,7 +3,7 @@ module Kinopoisk.Search where
 import Codec.Text.IConv (convert)
 import qualified Data.ByteString.Lazy as LBS
 import Data.Function
-import Data.Text.Lazy (Text, unpack)
+import Data.Text.Lazy (Text, append, unpack)
 import Data.Text.Lazy.Encoding (decodeUtf8)
 import Debug.Trace (trace)
 import Kinopoisk.SearchUrl
@@ -22,7 +22,7 @@ data SearchParams = SearchParams
 
 perPage = 10
 
-getRandomElement :: SearchParams -> IO (Integer, Maybe Text)
+getRandomElement :: SearchParams -> IO (Integer, Maybe (Text, Text))
 getRandomElement params = do
   (total, _) <- getElementsOnPage params
   if total == 0
@@ -37,7 +37,7 @@ getRandomElement params = do
       randomElement <- (elements !!) <$> randomRIO (0, length elements - 1)
       return (total, Just randomElement)
 
-getElementsOnPage :: SearchParams -> IO (Integer, [Text])
+getElementsOnPage :: SearchParams -> IO (Integer, [(Text, Text)])
 getElementsOnPage params = do
   let url =
         buildUrl
@@ -57,25 +57,25 @@ getElementsOnPage params = do
   let body = getResponseBody response
   let allTags = parseTags body
   (resultNum, foundElements) <-
-    case parseBody allTags :: Either ParseError (Integer, [Text]) of
+    case parseBody allTags :: Either ParseError (Integer, [(Text, Text)]) of
       Left err -> do
         putStrLn $ "parse error: " ++ show err
         undefined
       Right x -> return x
   putStrLn $ "resultNum = " ++ show resultNum
   putStrLn $ "foundElements = " ++ show foundElements
-  return (resultNum, foundElements)
+  return (resultNum, (\(url, title) -> (baseUrl `append` url, title)) <$> foundElements)
 
 type Token = Tag LBS.ByteString
 
-parseBody :: [Token] -> Either ParseError (Integer, [Text])
+parseBody :: [Token] -> Either ParseError (Integer, [(Text, Text)])
 parseBody = parse parser "html tokens"
   where
-    parser :: Parsec [Token] () (Integer, [Text])
+    parser :: Parsec [Token] () (Integer, [(Text, Text)])
     parser = (,) <$> foundNum <*> many element
       where
         foundNum = do
-          pText <- decodeUtf8 . convert "cp1251" "utf8" . innerText <$> foundNumText
+          pText <- decodeBS . innerText <$> foundNumText
           trace ("pText = " ++ unpack pText) $ return ()
           trace ("words pText = " ++ show (words . unpack $ pText)) $ return ()
           let text = (!! 3) . words . unpack $ pText
@@ -85,17 +85,21 @@ parseBody = parse parser "html tokens"
         foundNumText = do
           afterAnyTokens $ token'' "<span class=search_results_topText>"
           afterAnyTokens $ token'' "</span>"
-        element = do
-          result <- decodeUtf8 . convert "cp1251" "utf8" . innerText <$> elementTags
-          trace ("found element=" ++ show result) $ return ()
-          return result
-        elementTags =
+        element =
           try $ do
             afterAnyTokens $ token'' "<div class=info>"
             afterAnyTokens $ token'' "<p class=name>"
-            afterAnyTokens $ token'' "<a class=js-serp-metrika>"
-            afterAnyTokens $ token'' "</a>"
+            let elementLink = token'' "<a class=js-serp-metrika>"
+            many $ notFollowedBy elementLink
+            TagOpen "a" attributes <- elementLink
+            trace ("attributes = " ++ show attributes) $ return 0
+            case decodeBS <$> lookup "href" attributes of
+              Nothing -> unexpected "elements without url"
+              Just url -> do
+                title <- decodeBS . innerText <$> (afterAnyTokens $ token'' "</a>")
+                return (url, title)
         afterAnyTokens p = manyTill anyToken (try p)
+        decodeBS = decodeUtf8 . convert "cp1251" "utf8"
 
 token'' :: String -> Parsec [Token] () Token
 token'' = token' . toTagRep

@@ -81,5 +81,8 @@ parameterToText parameter = name `append` "/" `append` value
 buildUrl :: [Parameter] -> Text
 buildUrl params = prefixUrl `append` mconcat paramsText `append` "/"
   where
-    prefixUrl = "https://www.kinopoisk.ru/s/type/film/list/1/"
+    prefixUrl = baseUrl `append` "/s/type/film/list/1/"
     paramsText = intersperse "/" $ map parameterToText params
+
+baseUrl :: Text
+baseUrl = "https://www.kinopoisk.ru"

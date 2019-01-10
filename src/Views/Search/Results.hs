@@ -31,15 +31,17 @@ import Web.Scotty (ActionM)
 
 type FormValues = (ContentType, Integer, Integer)
 
-view :: FormValues -> Integer -> Maybe Text -> ActionM ()
-view formValues foundTotalNum foundElements =
+view :: FormValues -> Integer -> Maybe (Text, Text) -> ActionM ()
+view formValues foundTotalNum foundElement =
   blaze $
   Views.Layout.layout "Search" $ do
     div ! class_ "container" $ do
       div ! class_ "jumbotron" $ do
         h1 "Случайная выборка"
         p $ string $ "total found " ++ show foundTotalNum ++ " elements"
-        p $ text $ "found Elements: " `append` (fromMaybe "" foundElements)
+        case foundElement of
+          Just (elementUrl, elementTitle) -> a ! href (textValue elementUrl) $ text elementTitle
+          Nothing -> p "not found"
         searchForm formValues
 
 -- from_year to_year type
