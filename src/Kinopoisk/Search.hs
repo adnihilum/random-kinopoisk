@@ -5,7 +5,6 @@ import qualified Data.ByteString.Lazy as LBS
 import Data.Function
 import Data.Text.Lazy (Text, append, unpack)
 import Data.Text.Lazy.Encoding (decodeUtf8)
-import Debug.Trace (trace)
 import Kinopoisk.SearchUrl
 import Network.HTTP.Simple
 import System.Random
@@ -28,11 +27,8 @@ getRandomElement params = do
   if total == 0
     then return (total, Nothing)
     else do
-      putStrLn $ "total = " ++ show total
       let totalPages = (total `div` perPage) + 1
-      putStrLn $ "totalPages = " ++ show totalPages
       randomPage <- randomRIO (1, totalPages)
-      putStrLn $ "randomPage = " ++ show randomPage
       (_, elements) <- getElementsOnPage $ params {spPage = randomPage}
       randomElement <- (elements !!) <$> randomRIO (0, length elements - 1)
       return (total, Just randomElement)
@@ -47,13 +43,10 @@ getElementsOnPage params = do
           , ParamPerPage perPage
           , ParamPage $ params & spPage
           ]
-  putStrLn $ "url = " ++ unpack url
   request <- parseRequest $ unpack url
   response <- httpLBS request
   let statusCode = getResponseStatusCode response
-  putStrLn $ "status code: " ++ show statusCode
   let headers = getResponseHeaders response
-  putStrLn $ "headers: " ++ show headers
   let body = getResponseBody response
   let allTags = parseTags body
   (resultNum, foundElements) <-
@@ -62,8 +55,6 @@ getElementsOnPage params = do
         putStrLn $ "parse error: " ++ show err
         undefined
       Right x -> return x
-  putStrLn $ "resultNum = " ++ show resultNum
-  putStrLn $ "foundElements = " ++ show foundElements
   return (resultNum, (\(url, title) -> (baseUrl `append` url, title)) <$> foundElements)
 
 type Token = Tag LBS.ByteString
@@ -76,8 +67,6 @@ parseBody = parse parser "html tokens"
       where
         foundNum = do
           pText <- decodeBS . innerText <$> foundNumText
-          trace ("pText = " ++ unpack pText) $ return ()
-          trace ("words pText = " ++ show (words . unpack $ pText)) $ return ()
           let text = (!! 3) . words . unpack $ pText
           case readsPrec 10 text of
             [] -> unexpected "bad total number"
@@ -92,7 +81,6 @@ parseBody = parse parser "html tokens"
             let elementLink = token'' "<a class=js-serp-metrika>"
             many $ notFollowedBy elementLink
             TagOpen "a" attributes <- elementLink
-            trace ("attributes = " ++ show attributes) $ return 0
             case decodeBS <$> lookup "href" attributes of
               Nothing -> unexpected "elements without url"
               Just url -> do
