@@ -21,7 +21,7 @@ data ContentType
   | ContentTypeTrailer
   | ContentTypeProduct
   deriving (Enum, Bounded, Eq, Ord)
-
+ 
 instance Show ContentType where
   show ContentTypeFilm = "film"
   show ContentTypeSerial = "serial"
@@ -31,13 +31,14 @@ instance Show ContentType where
   show ContentTypeTrailer = "trailer"
   show ContentTypeProduct = "product"
 
+-- это парсер String -> ContentType
 instance Read ContentType where
   readsPrec _ t =
     if t `member` types
       then [(types ! t, "")]
       else []
     where
-      types = fromList [(show type', type') | type' <- [minBound :: ContentType ..]]
+      types = fromList [(show type', type') | type' <- contentTypeList]
 
 -- "https://www.kinopoisk.ru/s/type/film/list/1/m_act[from_year]/2004/m_act[to_year]/2018/m_act[genre][0]/3/m_act[genre][1]/13/m_act[genre][2]/19/m_act[type]/serial/"
 getContentTypeTitle type' =
@@ -62,7 +63,7 @@ getParameterName param = pack $ UE.encode $ unpack name
       case param of
         ParamFromYear {} -> wrapMAct "from_year"
         ParamToYear {} -> wrapMAct "to_year"
-        ParamContentType {} -> wrapMAct "type"
+        ParamContentType {} -> wrapMAct "content_find"
         ParamPerPage {} -> "perpage"
         ParamPage {} -> "page"
 

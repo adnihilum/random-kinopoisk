@@ -6,6 +6,8 @@ import Data.List
 import Data.Maybe (fromMaybe)
 import Data.Text (Text, append)
 import Kinopoisk.SearchUrl
+
+-- blaze-html - DSL для создание шаблонов html страниц
 import Text.Blaze.Html5
   ( Html
   , (!)
@@ -31,10 +33,12 @@ import Web.Scotty (ActionM)
 
 type FormValues = (ContentType, Integer, Integer)
 
-view :: FormValues -> Integer -> Maybe (Text, Text) -> ActionM ()
-view formValues foundTotalNum foundElement =
+-- страница с результатами поиск (с формой)
+searchResultsView :: FormValues -> Integer -> Maybe (Text, Text) -> ActionM ()
+searchResultsView formValues foundTotalNum foundElement =
   blaze $
-  Views.Layout.layout "Search" $ do
+  Views.Layout.layout "Search" $ -- <-- вложеные do хорошо читаемы в отличии от скалы
+   do
     div ! class_ "container" $ do
       div ! class_ "jumbotron" $ do
         h1 "Случайная выборка"
@@ -44,7 +48,7 @@ view formValues foundTotalNum foundElement =
           Nothing -> p "not found"
         searchForm formValues
 
--- from_year to_year type
+-- форма поиск 
 searchForm :: FormValues -> Html
 searchForm (contentType, fromYear, toYear) = do
   form ! action "/" ! method "get" $ do
@@ -52,6 +56,7 @@ searchForm (contentType, fromYear, toYear) = do
       simpleInput "from_year" "from_year" "From year:" $ show fromYear
       simpleInput "to_year" "to_year" "To year:" $ show toYear
       multiSelectList "type" "type" "Content type:" (show contentType) $
+        -- удобно генерировать списки html элементов
         map (\type' -> (show type', getContentTypeTitle type')) contentTypeList
       submitButton "Search"
   where

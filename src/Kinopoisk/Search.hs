@@ -1,14 +1,23 @@
 module Kinopoisk.Search where
 
+-- iconv для конвертации cp1251 -> utf8
 import Codec.Text.IConv (convert)
 import qualified Data.ByteString.Lazy as LBS
 import Data.Function
 import Data.Text.Lazy (Text, append, unpack)
 import Data.Text.Lazy.Encoding (decodeUtf8)
 import Kinopoisk.SearchUrl
+
+-- http-simple - http клиент
 import Network.HTTP.Simple
 import System.Random
+
+-- парсер html в набор чанков
 import Text.HTML.TagSoup
+
+import Control.Exception hiding (try)
+
+-- parsec - обобщённый парсер
 import Text.Parsec hiding (satisfy)
 import Text.Parsec.Pos
 
@@ -21,20 +30,28 @@ data SearchParams = SearchParams
 
 perPage = 10
 
+-- достаёт случайное произведение с кинопоиска
 getRandomElement :: SearchParams -> IO (Integer, Maybe (Text, Text))
-getRandomElement params = do
+getRandomElement params
+  -- первичный запрос к страницы поиска на кинопоиске
+ = do
   (total, _) <- getElementsOnPage params
   if total == 0
     then return (total, Nothing)
     else do
       let totalPages = (total `div` perPage) + 1
       randomPage <- randomRIO (1, totalPages)
+      -- вторичный запрос к рандомной страницы
       (_, elements) <- getElementsOnPage $ params {spPage = randomPage}
+      -- берём рандомное произведение со страницы
       randomElement <- (elements !!) <$> randomRIO (0, length elements - 1)
       return (total, Just randomElement)
 
+-- достаёт все произведения с поисковой выдачи кинопоиска
 getElementsOnPage :: SearchParams -> IO (Integer, [(Text, Text)])
-getElementsOnPage params = do
+getElementsOnPage params
+  -- формируем урл
+ = do
   let url =
         buildUrl
           [ ParamFromYear $ params & spFromYear
@@ -43,22 +60,24 @@ getElementsOnPage params = do
           , ParamPerPage perPage
           , ParamPage $ params & spPage
           ]
+  -- делаем запрос к кинопоиску
   request <- parseRequest $ unpack url
   response <- httpLBS request
   let statusCode = getResponseStatusCode response
   let headers = getResponseHeaders response
   let body = getResponseBody response
   let allTags = parseTags body
+  -- парсим html страницу ответа
   (resultNum, foundElements) <-
     case parseBody allTags :: Either ParseError (Integer, [(Text, Text)]) of
       Left err -> do
-        putStrLn $ "parse error: " ++ show err
-        undefined
+        error $ "parse error: " ++ show err
       Right x -> return x
   return (resultNum, (\(url, title) -> (baseUrl `append` url, title)) <$> foundElements)
 
 type Token = Tag LBS.ByteString
 
+-- парсит страницу результатов поиска
 parseBody :: [Token] -> Either ParseError (Integer, [(Text, Text)])
 parseBody = parse parser "html tokens"
   where
@@ -89,12 +108,16 @@ parseBody = parse parser "html tokens"
         afterAnyTokens p = manyTill anyToken (try p)
         decodeBS = decodeUtf8 . convert "cp1251" "utf8"
 
+-- вспомагательные функции
+-- для создания парсеров еденичных токенов из их текстового представления
 token'' :: String -> Parsec [Token] () Token
 token'' = token' . toTagRep
 
+-- ~== неточного сравнения 
 token' :: Token -> Parsec [Token] () Token
 token' t = satisfy (~== t) <?> show t
 
+-- делаем из предиката парсер конкретного токена
 satisfy :: (Token -> Bool) -> Parsec [Token] () Token
 satisfy pred =
   tokenPrim
