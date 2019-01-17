@@ -9,5 +9,5 @@ layoutCss :: Text
 layoutCss =
   render $ do
     body ? minHeight (px 2000)
-    element ".jumbotron" ? (textAlign $ alignSide sideCenter)
-    element "#gmail" ? (marginLeft $ px 10)
+    element ".jumbotron" ? textAlign (alignSide sideCenter)
+    element "#gmail" ? marginLeft (px 10)

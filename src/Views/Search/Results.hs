@@ -68,9 +68,9 @@ searchForm (contentType, fromYear, toYear) = do
       select ! name inputName ! class_ "form-control" ! id inputId $
         mapM_
           (\(optId, optLabel) ->
-             let option' = option ! (value $ stringValue optId)
+             let option' = option ! value (stringValue optId)
                  option'' =
-                   if (optId == selectedValue)
+                   if optId == selectedValue
                      then option' ! selected ""
                      else option'
               in option'' optLabel)
