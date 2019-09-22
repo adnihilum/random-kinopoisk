@@ -106,7 +106,7 @@ parseBody = parse parser "html tokens"
                 title <- decodeBS . innerText <$> (afterAnyTokens $ token'' "</a>")
                 return (url, title)
         afterAnyTokens p = manyTill anyToken (try p)
-        decodeBS = decodeUtf8 . convert "cp1251" "utf8"
+        decodeBS = decodeUtf8
 
 -- вспомагательные функции
 -- для создания парсеров еденичных токенов из их текстового представления
